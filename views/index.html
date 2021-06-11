@@ -1,0 +1,153 @@
+<!-- 
+ index.html - Ethereum Wallet
+ Author : Soto Jang (sotolabedu@gmail.com)
+ Copyright (c) Sunstar Since 2015. All Rights Reserved. See LICENSE file.
+ -->
+
+<!Doctype html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<script type="text/javascript" src="./js/web3.min.js"></script>
+	<script type="text/javascript" src="./js/ethereumjs-tx-1.3.3.min.js"></script>
+	<script src="http://code.jquery.com/jquery-latest.js "></script>
+	<script type="text/javascript" src="./js/qrcode.js"></script>
+
+	<!-- bootsrtap CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+
+	<title>소토 전자지갑</title>
+
+	<script>
+		$(document).ready(function () {
+			let DEBUG = 1;
+
+			const web3 = new Web3('https://ropsten.infura.io/v3/3c52917848e945229c0d33d632b10490');
+			let Buffer = ethereumjs.Buffer.Buffer;
+			let version = web3.version;
+
+			if (DEBUG) {
+				console.log('starting...');
+				console.log("Ropsten Ethereum API version : ", version);
+				console.log("web3: ", web3);
+			}
+			
+			let qrcode = new QRCode(document.getElementById("qrcode"), {
+				width : 250,
+				height : 250
+			});
+			
+			$('#coin').on('click', async function () {
+			
+			let fromaddress = $("#fromaddress").val();
+			let toaddress = $("#toaddress").val();
+			let amount = $("#sendcoin").val();
+			let myPrivateKey = $("#passwd").val();
+			
+			
+			
+				const privateKey = Buffer.from(myPrivateKey, 'hex');
+				if (DEBUG) console.log("privateKey: ", privateKey);
+
+				web3.eth.getTransactionCount(fromaddress, (err, txCount) => {
+				// Build the transaction
+				const txObject = {
+				nonce: web3.utils.toHex(txCount),
+				to: toaddress,
+				value: web3.utils.toHex(web3.utils.toWei(amount, 'ether')),
+				gasLimit: web3.utils.toHex(21000),
+				gasPrice: web3.utils.toHex(web3.utils.toWei('10', 'gwei'))
+				 }
+
+				 // Sign the transaction
+				 const tx = new ethereumjs.Tx(txObject);
+				 tx.sign(privateKey);
+
+				 const serializedTx = tx.serialize()
+				 const raw = '0x' + serializedTx.toString('hex')
+
+				 // Broadcast the transaction
+				 web3.eth.sendSignedTransaction(raw, (err, txHash) => {
+				console.log('txHash:', txHash)
+				  // Now go check etherscan to see the transaction!
+				  })
+				})  // end of txbuilder
+					
+			
+			})
+			
+			$('#getBalance').on('click', async function () {
+				
+				let fromaddress = $("#fromaddress").val();
+				
+				let getbalance = await web3.eth.getBalance(fromaddress);
+				let balance = web3.utils.fromWei(getbalance, "ether")
+
+				if (DEBUG) console.log("balance : ", balance + " ETH");
+				$('#message').text(" balance: " + balance + " ETH");
+			
+			})
+			
+			
+			$('#newAccount').on('click', async function () {
+
+				let account = web3.eth.accounts.create();
+
+				if (DEBUG) console.log("privateKey : ", account.privateKey);
+				if (DEBUG) console.log("account : ", account.address);
+
+				$('#fromaddress').val(account.address);
+				$('#passwd').val(account.privateKey);
+				
+				let elText = document.getElementById("fromaddress");				
+				qrcode.makeCode(elText.value); 
+
+				$('#message').text(" account: " + account.address);
+				alert("Account 생성이 완료 되었습니다..!!!" + account.address);
+
+				// getting the value
+				// let fromaddress = $("#fromaddress").val();
+
+				// setting the value
+				// $("#fromaddress").val( "new value here" );
+
+				// <h5>송신처 <input id="fromaddress" size="45" placeholder=""></input> </h5>
+				// <h5>수신처 <input id="toaddress" size="45" value="0x09BCeaC0A761E13f4e4F1461F0fD43dA25791588" placeholder=""></input> </h5>
+			})
+		})
+	</script>
+</head>
+
+<body>
+	<br>
+	<br>
+	<div class="container " role="main">
+		<h2><strong> 나의 전자지갑 이더리움 </strong></h2>
+		<div id="tablePlace"></div>
+		<button id="newAccount">계정생성</button>
+		<button id="getBalance">잔액조회</button>
+		<button id="coin">전  송</button>
+		<h5>송신처 <input id="fromaddress" size="45" placeholder="" value="0xe7671ff4C74D267b058457e393250948Fd7d173c" ></input> </h5>
+		<h5>수신처 <input id="toaddress" size="45" placeholder=""></input> </h5>
+		<h5>코인 <input id="sendcoin" size="45" placeholder=""></input> </h5>
+		<h5>비밀번호 <input type="password" id="passwd" size="45" placeholder="" value="b4390fea01806a0cccacf2745275982dce6d56f0571ff23d9cc43d0f4a7428eb"  ></input> </h5>
+	</div>
+	<br>
+	<br>
+	<div class="container " role="main">
+		<h4><strong> Message </strong></h4>
+		<div id="message"></div>
+		<div id="qrcode" style="width:250px; height:250px; margin-top:15px;"></div>
+	</div>
+	<hr>
+	<footer class="py-5 bg-dark">
+		<div class="container">
+			<p class="m-0 text-center text-white"><b>copyright ⓒ Sunstar, Since 2015 . All Rights Reserved. </b></p>
+		</div>
+	</footer>
+</body>
+
+</html>
